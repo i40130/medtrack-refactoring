@@ -180,7 +180,7 @@ Tests:       8 passed, 8 total
 ---
 
 
-## Resultados obtendiso
+## Resultados obtenidos
 
 ```
  npm install
