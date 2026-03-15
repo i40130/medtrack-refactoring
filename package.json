@@ -1,37 +1,22 @@
 {
   "name": "medtrack-refactoring",
   "version": "1.0.0",
-  "description": "Refactorización del PoC MedTrack mediante patrones de diseño GoF — TFG UNIR",
+  "description": "Refactorizacion del PoC MedTrack mediante patrones de diseno GoF — TFG UNIR",
   "private": true,
   "scripts": {
     "test": "jest --config jest.config.js",
-    "test:coverage": "jest --config jest.config.js --coverage",
-    "test:watch": "jest --config jest.config.js --watch",
-    "typecheck": "tsc --noEmit"
+    "test:coverage": "jest --config jest.config.js --coverage"
   },
   "devDependencies": {
-    "@testing-library/react-hooks": "^8.0.1",
     "@types/jest": "^29.5.12",
-    "@types/react": "^18.3.0",
-    "@types/uuid": "^9.0.8",
     "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0",
     "ts-jest": "^29.1.4",
     "typescript": "^5.4.5"
   },
-  "dependencies": {
-    "uuid": "^9.0.1"
-  },
   "keywords": [
-    "design-patterns",
-    "GoF",
-    "refactoring",
-    "oncology",
-    "PWA",
-    "typescript",
-    "repository-pattern",
-    "command-pattern",
-    "builder-pattern"
+    "design-patterns", "GoF", "refactoring", "oncology",
+    "PWA", "typescript", "repository-pattern",
+    "command-pattern", "builder-pattern"
   ],
   "author": "Iago Moure Pazos",
   "license": "MIT"

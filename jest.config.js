@@ -3,9 +3,6 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1'
-  },
   collectCoverageFrom: [
     'R1-adapter-repository/after/**/*.ts',
     'R2-command-sync/after/**/*.ts',

@@ -1,13 +1,17 @@
 // src/infrastructure/sync/ConfirmDoseCommand.ts
 
-import { supabase } from '@/integrations/supabase/client';
-import { SyncCommand, SyncStatus, SyncQueueEntry } from '@/domain/sync/SyncCommand';
-import { v4 as uuidv4 } from 'uuid';
+import { SyncCommand, SyncStatus, SyncQueueEntry } from './SyncCommand';
 
 export interface DoseConfirmPayload {
   takenAt: string;
   medicationId: string;
   patientId: string;
+}
+
+// Gateway inyectable — desacopla de Supabase para testabilidad
+export interface DoseEventGateway {
+  upsert(data: Record<string, unknown>): Promise<{ error: unknown }>;
+  revert(entityId: string): Promise<{ error: unknown }>;
 }
 
 export class ConfirmDoseCommand implements SyncCommand<DoseConfirmPayload> {
@@ -20,8 +24,13 @@ export class ConfirmDoseCommand implements SyncCommand<DoseConfirmPayload> {
   retryCount = 0;
   maxRetries = 3;
 
-  constructor(doseId: string, payload: DoseConfirmPayload) {
-    this.id = uuidv4();
+  constructor(
+    doseId: string,
+    payload: DoseConfirmPayload,
+    private readonly gateway: DoseEventGateway,
+    idGenerator: () => string = () => `cmd-${Date.now()}`
+  ) {
+    this.id = idGenerator();
     this.entityId = doseId;
     this.payload = payload;
     this.createdAt = new Date().toISOString();
@@ -29,16 +38,14 @@ export class ConfirmDoseCommand implements SyncCommand<DoseConfirmPayload> {
 
   async execute(): Promise<void> {
     this.status = 'syncing';
-    const { error } = await supabase
-      .from('dose_events')
-      .upsert({
-        id: this.entityId,
-        status: 'taken',
-        taken_at: this.payload.takenAt,
-        medication_id: this.payload.medicationId,
-        patient_id: this.payload.patientId,
-        idempotency_key: this.id
-      }, { onConflict: 'idempotency_key' });
+    const { error } = await this.gateway.upsert({
+      id: this.entityId,
+      status: 'taken',
+      taken_at: this.payload.takenAt,
+      medication_id: this.payload.medicationId,
+      patient_id: this.payload.patientId,
+      idempotency_key: this.id
+    });
 
     if (error) {
       this.status = 'failed';
@@ -49,10 +56,7 @@ export class ConfirmDoseCommand implements SyncCommand<DoseConfirmPayload> {
   }
 
   async undo(): Promise<void> {
-    const { error } = await supabase
-      .from('dose_events')
-      .update({ status: 'pending', taken_at: null })
-      .eq('id', this.entityId);
+    const { error } = await this.gateway.revert(this.entityId);
     if (error) throw error;
     this.status = 'pending';
   }

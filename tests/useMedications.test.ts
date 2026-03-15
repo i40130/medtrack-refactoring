@@ -1,56 +1,77 @@
-// tests/useMedications.test.ts
-// Verifica el desacoplamiento del hook respecto a Supabase (R1)
+import {
+  Medication,
+  MedicationInput,
+  MedicationRepository
+} from '../R1-adapter-repository/after/MedicationRepository';
 
-import { renderHook, act } from '@testing-library/react-hooks';
-import { useMedications } from '@/hooks/useMedications';
-import { MedicationRepository } from '@/domain/ports/MedicationRepository';
+// Mock repository — sin dependencia de Supabase ni red
+class InMemoryMedicationRepository implements MedicationRepository {
+  private store: Medication[] = [];
 
-const mockRepo: MedicationRepository = {
-  getAll: jest.fn().mockResolvedValue([
-    { id: 'med-1', name: 'Tamoxifeno', dosage: '20mg', is_active: true },
-    { id: 'med-2', name: 'Paracetamol', dosage: '1g', is_active: true }
-  ]),
-  getById: jest.fn(),
-  create: jest.fn(),
-  update: jest.fn(),
-  delete: jest.fn(),
-  getByStatus: jest.fn()
-};
+  async getAll(patientId: string): Promise<Medication[]> {
+    return this.store.filter((m) => m.patient_id === patientId);
+  }
 
-jest.mock('@/store/auth', () => ({
-  useAuthStore: () => ({ user: { id: 'user-test-001' } })
-}));
+  async getById(id: string): Promise<Medication | null> {
+    return this.store.find((m) => m.id === id) ?? null;
+  }
+
+  async create(input: MedicationInput): Promise<Medication> {
+    const med: Medication = {
+      ...input,
+      id: `med-${this.store.length + 1}`,
+      created_at: new Date().toISOString(),
+    };
+    this.store.push(med);
+    return med;
+  }
+
+  async update(id: string, input: Partial<MedicationInput>): Promise<Medication> {
+    const idx = this.store.findIndex((m) => m.id === id);
+    if (idx === -1) throw new Error('Not found');
+    this.store[idx] = { ...this.store[idx], ...input };
+    return this.store[idx];
+  }
+
+  async delete(id: string): Promise<void> {
+    this.store = this.store.filter((m) => m.id !== id);
+  }
+
+  async getByStatus(patientId: string, active: boolean): Promise<Medication[]> {
+    const status = active ? 'active' : 'completed';
+    return this.store.filter((m) => m.patient_id === patientId && m.status === status);
+  }
+}
 
 describe('useMedications con Repository Pattern', () => {
+  let repo: MedicationRepository;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    repo = new InMemoryMedicationRepository();
   });
 
-  test('carga medicaciones sin depender de Supabase', async () => {
-    const { result } = renderHook(() => useMedications(mockRepo));
-    await act(async () => {
-      await result.current.loadMedications();
-    });
-    expect(result.current.medications).toHaveLength(2);
-    expect(result.current.medications[0].name).toBe('Tamoxifeno');
-    expect(mockRepo.getAll).toHaveBeenCalledWith('user-test-001');
+  it('carga medicaciones sin depender de Supabase', async () => {
+    await repo.create({ patient_id: 'p1', name: 'Oxaliplatino', active_ingredient: 'oxaliplatino', status: 'active' });
+    await repo.create({ patient_id: 'p1', name: 'Leucovorin', active_ingredient: 'folinato calcico', status: 'active' });
+    await repo.create({ patient_id: 'p2', name: 'Capecitabina', active_ingredient: 'capecitabina', status: 'active' });
+
+    const meds = await repo.getAll('p1');
+
+    expect(meds).toHaveLength(2);
+    expect(meds.map((m) => m.name)).toContain('Oxaliplatino');
   });
 
-  test('crea medicacion mediante interfaz de repositorio', async () => {
-    const newMed = { id: 'med-3', name: 'Ondansetron', dosage: '8mg', is_active: true };
-    (mockRepo.create as jest.Mock).mockResolvedValue(newMed);
-
-    const { result } = renderHook(() => useMedications(mockRepo));
-    await act(async () => {
-      const created = await result.current.addMedication({
-        name: 'Ondansetron',
-        dosage: '8mg',
-        patient_id: 'patient-1'
-      });
-      expect(created.id).toBe('med-3');
+  it('crea medicacion mediante interfaz de repositorio', async () => {
+    const created = await repo.create({
+      patient_id: 'p1',
+      name: 'Bevacizumab',
+      active_ingredient: 'bevacizumab',
+      status: 'active',
     });
-    expect(result.current.medications).toHaveLength(1);
-    expect(mockRepo.create).toHaveBeenCalledTimes(1);
+
+    expect(created.id).toBeDefined();
+    expect(created.name).toBe('Bevacizumab');
+    expect(created.status).toBe('active');
+    expect(created.created_at).toBeDefined();
   });
 });

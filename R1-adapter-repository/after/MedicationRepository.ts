@@ -1,6 +1,18 @@
 // src/domain/ports/MedicationRepository.ts
+// Tipos de dominio definidos localmente — evita dependencia de modulos externos
 
-import { Medication, MedicationInput } from '@/types/medication';
+export type MedicationStatus = 'active' | 'paused' | 'completed' | 'cancelled';
+
+export interface Medication {
+  id: string;
+  patient_id: string;
+  name: string;
+  active_ingredient: string;
+  status: MedicationStatus;
+  created_at: string;
+}
+
+export type MedicationInput = Omit<Medication, 'id' | 'created_at'>;
 
 export interface MedicationRepository {
   getAll(patientId: string): Promise<Medication[]>;

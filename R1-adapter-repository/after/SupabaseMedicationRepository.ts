@@ -1,73 +1,76 @@
-// src/infrastructure/adapters/SupabaseMedicationRepository.ts
+// src/infrastructure/persistence/SupabaseMedicationRepository.ts
+// Adapter: implementacion concreta con Supabase
 
-import { supabase } from '@/integrations/supabase/client';
-import { MedicationRepository } from '@/domain/ports/MedicationRepository';
-import { Medication, MedicationInput } from '@/types/medication';
+import { Medication, MedicationInput, MedicationRepository } from './MedicationRepository';
 
-class RepositoryError extends Error {
-  constructor(public code: string, message: string) {
-    super(`[${code}] ${message}`);
-    this.name = 'RepositoryError';
-  }
+// Interfaz minima del cliente Supabase (anti-corruption layer)
+interface SupabaseClient {
+  from(table: string): {
+    select(columns?: string): any;
+    insert(data: object): any;
+    update(data: object): any;
+    delete(): any;
+  };
 }
 
 export class SupabaseMedicationRepository implements MedicationRepository {
+  constructor(private readonly client: SupabaseClient) {}
 
   async getAll(patientId: string): Promise<Medication[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('medications')
       .select('*')
       .eq('patient_id', patientId);
-    if (error) throw new RepositoryError('FETCH_MEDICATIONS', error.message);
+    if (error) throw new Error(`getAll failed: ${JSON.stringify(error)}`);
     return data ?? [];
   }
 
   async getById(id: string): Promise<Medication | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('medications')
       .select('*')
       .eq('id', id)
-      .maybeSingle();
-    if (error) throw new RepositoryError('FETCH_MEDICATION', error.message);
+      .single();
+    if (error) return null;
     return data;
   }
 
   async create(input: MedicationInput): Promise<Medication> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('medications')
       .insert(input)
       .select()
       .single();
-    if (error) throw new RepositoryError('CREATE_MEDICATION', error.message);
+    if (error || !data) throw new Error(`create failed: ${JSON.stringify(error)}`);
     return data;
   }
 
   async update(id: string, input: Partial<MedicationInput>): Promise<Medication> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('medications')
       .update(input)
       .eq('id', id)
-      .select()
       .single();
-    if (error) throw new RepositoryError('UPDATE_MEDICATION', error.message);
+    if (error || !data) throw new Error(`update failed: ${JSON.stringify(error)}`);
     return data;
   }
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('medications')
       .delete()
       .eq('id', id);
-    if (error) throw new RepositoryError('DELETE_MEDICATION', error.message);
+    if (error) throw new Error(`delete failed: ${JSON.stringify(error)}`);
   }
 
   async getByStatus(patientId: string, active: boolean): Promise<Medication[]> {
-    const { data, error } = await supabase
+    const status = active ? 'active' : 'completed';
+    const { data, error } = await this.client
       .from('medications')
       .select('*')
       .eq('patient_id', patientId)
-      .eq('is_active', active);
-    if (error) throw new RepositoryError('FETCH_BY_STATUS', error.message);
+      .eq('status', status);
+    if (error) throw new Error(`getByStatus failed: ${JSON.stringify(error)}`);
     return data ?? [];
   }
 }
