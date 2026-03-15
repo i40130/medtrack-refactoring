@@ -179,6 +179,51 @@ Tests:       8 passed, 8 total
 
 ---
 
+
+## Resultados obtendiso
+
+```
+ npm install
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+added 280 packages, and audited 281 packages in 1s
+
+34 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+❯ npm test
+
+> medtrack-refactoring@1.0.0 test
+> jest --config jest.config.js
+
+ PASS  tests/ConfirmDoseCommand.test.ts
+  ConfirmDoseCommand
+    ✓ ejecuta confirmacion de dosis y cambia estado a synced (3 ms)
+    ✓ reintenta comandos fallidos hasta maxRetries (5 ms)
+
+ PASS  tests/MedicationScheduleBuilder.test.ts
+  MedicationScheduleBuilder
+    ✓ construye protocolo quimioterapia 21+7 con 6 ciclos (3 ms)
+    ✓ lanza error si falta frecuencia de dosificacion (17 ms)
+    ✓ lanza error si faltan campos obligatorios
+    ✓ construye posologia simple sin ciclos (1 ms)
+
+ PASS  tests/useMedications.test.ts
+  useMedications con Repository Pattern
+    ✓ carga medicaciones sin depender de Supabase (2 ms)
+    ✓ crea medicacion mediante interfaz de repositorio (1 ms)
+
+Test Suites: 3 passed, 3 total
+Tests:       8 passed, 8 total
+Snapshots:   0 total
+Time:        1.495 s
+Ran all test suites.
+```
+
+---
+
 ## Referencias
 
 - Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). *Design Patterns: Elements
